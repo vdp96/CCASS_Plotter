@@ -97,7 +97,7 @@ def __validate_date(dt: str) -> str:
     logger.info("__validate_date : end")
     return dt
 
-def get_investor_details_for_date(stock_code: str, dt: str = None) -> dict:
+def get_investor_details_for_date(stock_code: str, dt: str = None, count: int = 10) -> dict:
     """
     It is a helper function that gets data for a specific stock code and given date
     :param stock_code:
@@ -142,10 +142,9 @@ def get_investor_details_for_date(stock_code: str, dt: str = None) -> dict:
     col_headings = driver.find_elements_by_xpath(xpath="//*[@id='pnlResultNormal']/div[2]/div/div[2]/table/thead/tr[1]/th")
     col_headings = [i.text for i in col_headings]
     len_cols = len(col_headings)
-    logger.debug("column headings : {}".format(col_headings))
+    # logger.debug("column headings : {}".format(col_headings))
 
-    # extract top 10 participants
-    count = 10
+    # extract top n participants
     row_xpath = "//*[@id='pnlResultNormal']/div[2]/div/div[2]/table/tbody"
     rows = list()
 
@@ -158,8 +157,8 @@ def get_investor_details_for_date(stock_code: str, dt: str = None) -> dict:
         # logger.debug("appending row : {}".format(row))
         rows.append(row)
 
-    logger.debug("rows : {}".format(rows))
     logger.debug("len(rows) : {}".format(len(rows)))
+    driver.quit()
 
     # creating output dict
     out = dict()
@@ -168,8 +167,89 @@ def get_investor_details_for_date(stock_code: str, dt: str = None) -> dict:
     logger.info("get_investor_details : end")
 
     # creating df
-    df = pandas.DataFrame(columns=col_headings, data=rows)
+    # df = pandas.DataFrame(columns=col_headings, data=rows)
     return out
+
+
+def __get_dates(start_date: str, end_date: str) -> list:
+    logger.info("__get_dates : start")
+
+    start_date = datetime.datetime.strptime(start_date, "%Y%m%d")
+    end_date = datetime.datetime.strptime(end_date, "%Y%m%d")
+    dates = [start_date+datetime.timedelta(days=x) for x in range((end_date-start_date).days+1)]
+    dates = [x.strftime("%Y%m%d") for x in dates]
+    logger.debug("number of days : {}".format(len(dates)))
+
+    logger.info("__get_dates : end")
+    return dates
+
+
+def get_investor_details(stock_code: str, start_date: str, end_date: str, count: int = 10) -> dict:
+    logger.info("get_investor_details : start")
+
+    dates = __get_dates(start_date=start_date, end_date=end_date)
+
+    df = pandas.DataFrame()
+    for date in dates:
+        inv_data = get_investor_details_for_date(stock_code=stock_code, dt=date, count=count)
+        inv_df = pandas.DataFrame(columns=inv_data["columns"], data=inv_data["rows"])
+        inv_df["date"] = date
+        df = pandas.concat([df, inv_df], axis=0)
+
+    logger.debug("df.shape : {}".format(df.shape))
+
+    out = df.to_dict(orient="records")
+    logger.info("get_investor_details : end")
+    return out
+
+
+def find_transactions(stock_code: str, start_date: str, end_date: str, threshold: float) -> dict:
+    logger.info("find_transactions : start")
+
+    df = pandas.DataFrame(get_investor_details(stock_code=stock_code, start_date=start_date, end_date=end_date, count=20))
+
+    # perform the math
+    sorted_df = df.groupby(by=["Participant ID"]).apply(lambda x: x.sort_values(["date"])).reset_index(drop=True)
+    sorted_df["float_holdings"] = sorted_df["% of the total number of Issued Shares/ Warrants/ Units"].apply(lambda x: float(x[:-1]))
+    sorted_df["diff"] = sorted_df.groupby(["Participant ID"])["float_holdings"].diff()
+    sorted_df["mark_threshold"] = sorted_df["diff"].apply(lambda x: 1 if abs(x) > threshold else 0)
+
+    filt_df = sorted_df.copy()
+    filt_df = filt_df[filt_df["mark_threshold"] == 1]
+    filt_df = filt_df.sort_values(["date", "diff"])
+
+    # example
+    temp_df = filt_df[["date", "Participant ID", "diff"]]
+    buys = temp_df[temp_df["diff"] > 0].to_dict("records")
+    sells = temp_df[temp_df["diff"] < 0].to_dict("records")
+
+    trans_dict = dict()
+    out_list = list()
+    for buy in buys:
+        b_pid = buy["Participant ID"]
+        dt = buy["date"]
+        trans_dict[dt] = dict()
+
+        for sell in sells:
+            mat = list()
+            s_pid = sell["Participant ID"]
+            bd = buy["diff"]
+            sd = abs(sell["diff"])
+            mx = max(bd, sd)
+            mn = min(bd, sd)
+            if dt == sell["date"]:
+                if mn/mx >= 0.3:
+                    lst = list()
+                    lst.append([dt, b_pid, s_pid])
+                    # mat.append(s_pid)
+        # trans_dict[dt][b_pid] = mat
+
+    # find transactions
+    for date, gp_df in filt_df.groupby(["date"]):
+        temp_df = gp_df[["date", "Participant ID", "diff"]]
+        temp_dict = temp_df.to_dict(orient="records")
+    logger.info("find_transactions : end")
+    return dict()
 
 
 def do():
@@ -178,6 +258,8 @@ def do():
 
     # get_investor_details_for_date(stock_code="00001", dt="20210513")
     # __validate_date("20210413")
+
+    find_transactions("00001", "20220103", "20220110", 0.009)
     pass
 
 # do()
