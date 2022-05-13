@@ -15,6 +15,7 @@
               function plot() {
                 document.getElementById("plot").style.display = "block";
                 document.getElementById("transactions").style.display = "none";
+                hot.destroy();
             };
             function transactions() {
                 document.getElementById("plot").style.display = "none";
@@ -32,8 +33,8 @@
     <!-- Nav Tabs -->
     <nav>
       <div class="nav nav-tabs" id="nav-tab" role="tablist">
-        <button class="nav-link active" id="nav-plotter-tab" data-bs-toggle="tab" data-bs-target="#nav-plotter" type="button" role="tab" aria-controls="nav-plotter" aria-selected="true">plotter</button>
-        <button class="nav-link" id="nav-transactions-tab" data-bs-toggle="tab" data-bs-target="#nav-transactions" type="button" role="tab" aria-controls="nav-transactions" aria-selected="false">transactions</button>
+        <button class="nav-link active" id="nav-plotter-tab" data-bs-toggle="tab" data-bs-target="#nav-plotter" type="button" role="tab" aria-controls="nav-plotter" aria-selected="true" onclick="plot()">plotter</button>
+        <button class="nav-link" id="nav-transactions-tab" data-bs-toggle="tab" data-bs-target="#nav-transactions" type="button" role="tab" aria-controls="nav-transactions" aria-selected="false" onclick="transactions()">transactions</button>
       </div>
     </nav>
 
@@ -55,6 +56,7 @@
                 stock code: <input type="text" name="stock_code" value="" placeholder="00001">
                 start date: <input type="text" name="start_date" value="" placeholder="yyyymmdd">
                 end date: <input type="text" name="end_date" value="" placeholder="yyyymmdd">
+                threshold: <input type="text" name="threshold" value="" placeholder="pct value (1)">
                 <button type="submit" class="btn btn-primary">Go</button>
             </div>
         </form>

@@ -9,6 +9,18 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/handsontable/8.3.1/handsontable.css" integrity="sha512-URC0TzPU4Wr0Vg2FBCJVBKUfLy79H6hiHOi34WFwsyJifwXPuRLPW4ItpKxLJSYvfIuTGgoGRcXUkdt5LKLnhA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js" integrity="sha512-QSkVNOCYLtj73J4hbmVoOV6KVZuMluZlioC+trLpewV8qMjsWqlIQvkn1KGX2StWvPMdWGBqim1xlC8krl1EKQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
+<style>
+canvas{
+    margin: 0 auto;
+}
+cht_box{
+  text-align: center;
+}
+cht_container{
+  width: 65%;
+  display: inline-block;
+}
+</style>
 
 <body style="font-family: Arial">
      <!-- functions to toggle forms -->
@@ -20,6 +32,8 @@
             function transactions() {
                 document.getElementById("plot").style.display = "none";
                 document.getElementById("transactions").style.display = "block";
+                bar_cht.destroy();
+                hot.destroy();
             };
     </script>
 
@@ -33,8 +47,8 @@
     <!-- Nav Tabs -->
     <nav>
       <div class="nav nav-tabs" id="nav-tab" role="tablist">
-        <button class="nav-link active" id="nav-plotter-tab" data-bs-toggle="tab" data-bs-target="#nav-plotter" type="button" role="tab" aria-controls="nav-plotter" aria-selected="true">plotter</button>
-        <button class="nav-link" id="nav-transactions-tab" data-bs-toggle="tab" data-bs-target="#nav-transactions" type="button" role="tab" aria-controls="nav-transactions" aria-selected="false">transactions</button>
+        <button class="nav-link active" id="nav-plotter-tab" data-bs-toggle="tab" data-bs-target="#nav-plotter" type="button" role="tab" aria-controls="nav-plotter" aria-selected="true" onclick="plot()">plotter</button>
+        <button class="nav-link" id="nav-transactions-tab" data-bs-toggle="tab" data-bs-target="#nav-transactions" type="button" role="tab" aria-controls="nav-transactions" aria-selected="false" onclick="transactions()">transactions</button>
       </div>
     </nav>
 
@@ -56,48 +70,53 @@
                 stock code: <input type="text" name="stock_code" value="" placeholder="00001">
                 start date: <input type="text" name="start_date" value="" placeholder="yyyymmdd">
                 end date: <input type="text" name="end_date" value="" placeholder="yyyymmdd">
+                threshold: <input type="text" name="threshold" value="" placeholder="pct value (1)">
                 <button type="submit" class="btn btn-primary">Go</button>
             </div>
         </form>
     </div>
 
     <!-- Chart  -->
-    <canvas id="bar-chart" width="1200" height="500"></canvas>
-    <script>
-        var out = {{ data | tojson }};
-        pt_data = out.plot
-        var cht = document.getElementById('bar-chart');
+     <div class="cht_box">
+      <div class="cht_container">
+        <canvas id="bar-chart" width="1000" height="400"></canvas>
+            <script>
+                var out = {{ data | tojson }};
+                pt_data = out.plot
+                var cht = document.getElementById('bar-chart');
 
-        new Chart(cht, {
-            type: 'bar',
-            data: {
-                labels: pt_data.names,
-                datasets: [{
-                    label: "holding %",
-                    backgroundColor: ["#3e95cd", "#8e5ea2","#3cba9f","#e8c3b9","#c45850", "#f38b4a", "#56d798", "#ff8397", "#6970d5", "#ff22ff"],
-                    data: pt_data.shares_pct
-                }],
-            },
-            options: {
-              responsive: false,
-              legend: { display: false },
-              plugins:{
-                title: {
-                    display: true,
-                    text: 'As of : ' + pt_data.date,
-                    padding: {
-                        top: 10,
-                        bottom: 10
+                bar_cht = new Chart(cht, {
+                    type: 'bar',
+                    data: {
+                        labels: pt_data.names,
+                        datasets: [{
+                            label: "holding %",
+                            backgroundColor: ["#3e95cd", "#8e5ea2","#3cba9f","#e8c3b9","#c45850", "#f38b4a", "#56d798", "#ff8397", "#6970d5", "#ff22ff"],
+                            data: pt_data.shares_pct
+                        }],
+                    },
+                    options: {
+                      responsive: false,
+                      legend: { display: false },
+                      plugins:{
+                        title: {
+                            display: true,
+                            text: 'Stock Code : ' + pt_data.stock_code + ' | ' + ' As of : ' + pt_data.date,
+                            padding: {
+                                top: 10,
+                                bottom: 10
+                            },
+                            align: 'center'
+                        }
+                      }
                     }
-                }
-              }
-            }
-        })
-    </script>
+                })
+            </script>
+       </div>
+    </div>
 
     <!-- Table -->
     <br>
-    <p style="text-align: center;">Holding pattern across date range</p>
     <div style="width: 1300px;">
         <div id="table"></div>
     </div>

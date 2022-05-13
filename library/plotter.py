@@ -210,14 +210,15 @@ def get_investor_details(stock_code: str, start_date: str, end_date: str, count:
 
     table_data = df.to_dict(orient="split")
 
-   # plot data
+    # plot data
     plot_data = dict()
     plot_df = df[df["date"] == end_date]
+    plot_data["date"] = end_date
+    plot_data["stock_code"] = stock_code
     plot_data["columns"] = list(plot_df.columns)
     plot_data["names"] = plot_df["name"].tolist()
     plot_data["shares_pct"] = plot_df["shares_pct"].tolist()
     plot_data["shares_pct"] = [float(i[:-1]) for i in plot_data["shares_pct"]]
-    plot_data["date"] = end_date
 
     out = dict()
     out["table"] = table_data
