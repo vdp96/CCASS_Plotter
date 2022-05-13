@@ -9,6 +9,18 @@
 </head>
 <body>
     <div>
+        <!-- functions to toggle forms -->
+        <script>
+              function plot() {
+                document.getElementById("plot").style.display = "block";
+                document.getElementById("transactions").style.display = "none";
+            };
+            function transactions() {
+                document.getElementById("plot").style.display = "none";
+                document.getElementById("transactions").style.display = "block";
+            };
+        </script>
+
         <!-- Nav Bar -->
         <nav class="navbar navbar-light" style="background-color: #e3f2fd;">
           <div class="container-fluid">
@@ -19,15 +31,15 @@
         <!-- Nav tabs -->
         <nav>
           <div class="nav nav-tabs" id="nav-tab" role="tablist">
-            <button class="nav-link active" id="nav-plotter-tab" data-bs-toggle="tab" data-bs-target="#nav-plotter" type="button" role="tab" aria-controls="nav-plotter" aria-selected="true">plotter</button>
-            <button class="nav-link" id="nav-transactions-tab" data-bs-toggle="tab" data-bs-target="#nav-transactions" type="button" role="tab" aria-controls="nav-transactions" aria-selected="false">transactions</button>
+            <button class="nav-link active" id="nav-plotter-tab" data-bs-toggle="tab" data-bs-target="#nav-plotter" type="button" role="tab" aria-controls="nav-plotter" aria-selected="true" onclick="plot()">plotter</button>
+            <button class="nav-link" id="nav-transactions-tab" data-bs-toggle="tab" data-bs-target="#nav-transactions" type="button" role="tab" aria-controls="nav-transactions" aria-selected="false" onclick="transactions()">transactions</button>
           </div>
         </nav>
 
         <!-- Nav tab content -->
         <div class="tab-content" id="nav-tabContent">
 
-            <form class="" action="plot_trend" method="post" name="plot_form">
+            <form id="plot" class="" action="plot_trend" method="post" name="plot_form">
                 <div class="tab-pane fade show active" id="nav-plotter" role="tabpanel" aria-labelledby="nav-plotter-tab">
                     <br>
                     stock code: <input type="text" name="stock_code" value="" placeholder="00001">
@@ -37,7 +49,7 @@
                 </div>
             </form>
 
-            <form class="" action="find_transactions" method="post" name="transactions_form">
+            <form id="transactions" class="" action="find_transactions" method="post" name="transactions_form">
                 <div class="tab-pane fade" id="nav-transactions" role="tabpanel" aria-labelledby="nav-transactions-tab">
                     <br>
                     stock code: <input type="text" name="stock_code" value="" placeholder="00001">
