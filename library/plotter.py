@@ -28,6 +28,14 @@ SH_LINK = "https://www.hkexnews.hk/sdw/search/searchsdw.aspx"
 INDEX_CODES_LINK = "https://www.hkexnews.hk/sdw/search/stocklist.aspx?sortby=stockcode&shareholdingdate=20220508"
 TODAY = datetime.datetime.today()
 
+# Col Headings
+COL_MAP = dict()
+COL_MAP["Participant ID"] = "id"
+COL_MAP["Name of CCASS Participant\n(* for Consenting Investor Participants )"] = "name"
+COL_MAP["Address"] = "address"
+COL_MAP["Shareholding"] = "shares"
+COL_MAP["% of the total number of Issued Shares/ Warrants/ Units"] = "shares_pct"
+
 
 def __get_driver() -> webdriver.Chrome:
     """
@@ -195,10 +203,25 @@ def get_investor_details(stock_code: str, start_date: str, end_date: str, count:
         inv_df = pandas.DataFrame(columns=inv_data["columns"], data=inv_data["rows"])
         inv_df["date"] = date
         df = pandas.concat([df, inv_df], axis=0)
-
+    df.rename(columns=COL_MAP, inplace=True)
+    cols_order = ["date"] + list(COL_MAP.values())
+    df = df[cols_order]
     logger.debug("df.shape : {}".format(df.shape))
 
-    out = df.to_dict(orient="records")
+    table_data = df.to_dict(orient="split")
+
+   # plot data
+    plot_data = dict()
+    plot_df = df[df["date"] == end_date]
+    plot_data["columns"] = list(plot_df.columns)
+    plot_data["names"] = plot_df["name"].tolist()
+    plot_data["shares_pct"] = plot_df["shares_pct"].tolist()
+    plot_data["shares_pct"] = [float(i[:-1]) for i in plot_data["shares_pct"]]
+    plot_data["date"] = end_date
+
+    out = dict()
+    out["table"] = table_data
+    out["plot"] = plot_data
     logger.info("get_investor_details : end")
     return out
 
@@ -257,9 +280,10 @@ def do():
     # print(GET_STOCK_CODES)
 
     # get_investor_details_for_date(stock_code="00001", dt="20210513")
+    get_investor_details("00001", "20220103", "20220103")
     # __validate_date("20210413")
 
-    find_transactions("00001", "20220103", "20220110", 0.009)
+    # find_transactions("00001", "20220103", "20220110", 0.009)
     pass
 
 # do()
