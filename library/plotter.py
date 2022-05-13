@@ -192,8 +192,8 @@ def __get_dates(start_date: str, end_date: str) -> list:
     return dates
 
 
-def get_investor_details(stock_code: str, start_date: str, end_date: str, count: int = 10) -> dict:
-    logger.info("get_investor_details : start")
+def get_investor_details_for_date_range(stock_code: str, start_date: str, end_date: str, count: int = 10) -> pandas.DataFrame:
+    logger.info("get_investor_details_for_date_range : start")
 
     dates = __get_dates(start_date=start_date, end_date=end_date)
 
@@ -203,18 +203,27 @@ def get_investor_details(stock_code: str, start_date: str, end_date: str, count:
         inv_df = pandas.DataFrame(columns=inv_data["columns"], data=inv_data["rows"])
         inv_df["date"] = date
         df = pandas.concat([df, inv_df], axis=0)
+
     df.rename(columns=COL_MAP, inplace=True)
     cols_order = ["date"] + list(COL_MAP.values())
     df = df[cols_order]
     logger.debug("df.shape : {}".format(df.shape))
 
+    logger.info("get_investor_details_for_date_range : end")
+    return df
+
+def get_investor_details(stock_code: str, start_date: str, end_date: str, count: int = 10) -> dict:
+    logger.info("get_investor_details : start")
+
+    df = get_investor_details_for_date_range(stock_code=stock_code, start_date=start_date, end_date=end_date, count=count)
     table_data = df.to_dict(orient="split")
 
     # plot data
     plot_data = dict()
-    plot_df = df[df["date"] == end_date]
     plot_data["date"] = end_date
     plot_data["stock_code"] = stock_code
+
+    plot_df = df[df["date"] == end_date]
     plot_data["columns"] = list(plot_df.columns)
     plot_data["names"] = plot_df["name"].tolist()
     plot_data["shares_pct"] = plot_df["shares_pct"].tolist()
@@ -229,51 +238,62 @@ def get_investor_details(stock_code: str, start_date: str, end_date: str, count:
 
 def find_transactions(stock_code: str, start_date: str, end_date: str, threshold: float) -> dict:
     logger.info("find_transactions : start")
-
-    df = pandas.DataFrame(get_investor_details(stock_code=stock_code, start_date=start_date, end_date=end_date, count=20))
+    threshold = float(threshold)
+    df = pandas.DataFrame(get_investor_details_for_date_range(stock_code=stock_code, start_date=start_date, end_date=end_date, count=20))
 
     # perform the math
-    sorted_df = df.groupby(by=["Participant ID"]).apply(lambda x: x.sort_values(["date"])).reset_index(drop=True)
-    sorted_df["float_holdings"] = sorted_df["% of the total number of Issued Shares/ Warrants/ Units"].apply(lambda x: float(x[:-1]))
-    sorted_df["diff"] = sorted_df.groupby(["Participant ID"])["float_holdings"].diff()
-    sorted_df["mark_threshold"] = sorted_df["diff"].apply(lambda x: 1 if abs(x) > threshold else 0)
+    sorted_df = df.groupby(by=["id"]).apply(lambda x: x.sort_values(["date"])).reset_index(drop=True)
+    sorted_df["float_holdings"] = sorted_df["shares_pct"].apply(lambda x: float(x[:-1]))
+    sorted_df["sh_change_pct"] = sorted_df.groupby(["id"])["float_holdings"].diff()
+    sorted_df["mark_threshold"] = sorted_df["sh_change_pct"].apply(lambda x: 1 if abs(x) > threshold else 0)
 
     filt_df = sorted_df.copy()
     filt_df = filt_df[filt_df["mark_threshold"] == 1]
-    filt_df = filt_df.sort_values(["date", "diff"])
+    filt_df = filt_df.sort_values(["date", "sh_change_pct"])
 
     # example
-    temp_df = filt_df[["date", "Participant ID", "diff"]]
-    buys = temp_df[temp_df["diff"] > 0].to_dict("records")
-    sells = temp_df[temp_df["diff"] < 0].to_dict("records")
+    temp_df = filt_df[["date", "id", "name", "shares", "shares_pct", "sh_change_pct"]]
+    buys_df = temp_df[temp_df["sh_change_pct"] > 0]
+    sells_df = temp_df[temp_df["sh_change_pct"] < 0]
+    buys = buys_df.to_dict("records")
+    sells = sells_df.to_dict("records")
 
-    trans_dict = dict()
-    out_list = list()
+    # get list of transactions based on criteria
+    # Criteria: shares exchanged between parties should be at least 30% of max shares transacted between parties
+    trans_list = list()
     for buy in buys:
-        b_pid = buy["Participant ID"]
+        b_pid = buy["id"]
         dt = buy["date"]
-        trans_dict[dt] = dict()
-
         for sell in sells:
-            mat = list()
-            s_pid = sell["Participant ID"]
-            bd = buy["diff"]
-            sd = abs(sell["diff"])
-            mx = max(bd, sd)
-            mn = min(bd, sd)
             if dt == sell["date"]:
+                s_pid = sell["id"]
+                bd = buy["sh_change_pct"]
+                sd = abs(sell["sh_change_pct"])
+                mx = max(bd, sd)
+                mn = min(bd, sd)
                 if mn/mx >= 0.3:
-                    lst = list()
-                    lst.append([dt, b_pid, s_pid])
-                    # mat.append(s_pid)
-        # trans_dict[dt][b_pid] = mat
+                    trans_list.append([dt, b_pid, s_pid])
 
-    # find transactions
-    for date, gp_df in filt_df.groupby(["date"]):
-        temp_df = gp_df[["date", "Participant ID", "diff"]]
-        temp_dict = temp_df.to_dict(orient="records")
+    out_df = pandas.DataFrame(columns=["date", "b_id", "b_name", "b_shares", "b_shares_pct",  "b_sh_change_pct", "s_id", "s_name", "s_shares", "s_shares_pct", "s_sh_change_pct"])
+    buys_df.rename(columns={"date": "date", "id": "b_id", "name": "b_name", "shares": "b_shares", "shares_pct": "b_shares_pct", "sh_change_pct": "b_sh_change_pct"}, inplace=True)
+    sells_df.rename(columns={"date": "date", "id": "s_id", "name": "s_name", "shares": "s_shares", "shares_pct": "s_shares_pct", "sh_change_pct": "s_sh_change_pct"}, inplace=True)
+    
+    for exch in trans_list:
+        dt = exch[0]
+        bid = exch[1]
+        sid = exch[2]
+        b_df = (buys_df[(buys_df["date"] == dt) & (buys_df["b_id"] == bid)]).reset_index(drop=True)
+        s_df = (sells_df[(sells_df["date"] == dt) & (sells_df["s_id"] == sid)]).reset_index(drop=True)
+        s_df.drop(columns=["date"], inplace=True)
+        row_df = pandas.concat([b_df, s_df], axis=1)
+        out_df = pandas.concat([out_df, row_df], axis=0)
+
+    out_df["b_sh_change_pct"] = out_df["b_sh_change_pct"].astype("float").round(2)
+    out_df["s_sh_change_pct"] = out_df["s_sh_change_pct"].astype("float").round(2)
+
+    out = out_df.to_dict(orient="split")
     logger.info("find_transactions : end")
-    return dict()
+    return out
 
 
 def do():
@@ -281,10 +301,10 @@ def do():
     # print(GET_STOCK_CODES)
 
     # get_investor_details_for_date(stock_code="00001", dt="20210513")
-    get_investor_details("00001", "20220103", "20220103")
+    # get_investor_details("00001", "20220103", "20220103")
     # __validate_date("20210413")
 
-    # find_transactions("00001", "20220103", "20220110", 0.009)
+    find_transactions("00001", "20220103", "20220105", 0.009)
     pass
 
 # do()

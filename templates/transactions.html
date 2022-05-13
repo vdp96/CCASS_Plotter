@@ -12,7 +12,7 @@
 <body style="font-family: Arial">
     <!-- functions to toggle forms -->
     <script>
-              function plot() {
+            function plot() {
                 document.getElementById("plot").style.display = "block";
                 document.getElementById("transactions").style.display = "none";
                 hot.destroy();
@@ -20,6 +20,8 @@
             function transactions() {
                 document.getElementById("plot").style.display = "none";
                 document.getElementById("transactions").style.display = "block";
+                bar_cht.destroy();
+                hot.destroy();
             };
     </script>
 
@@ -33,30 +35,30 @@
     <!-- Nav Tabs -->
     <nav>
       <div class="nav nav-tabs" id="nav-tab" role="tablist">
-        <button class="nav-link active" id="nav-plotter-tab" data-bs-toggle="tab" data-bs-target="#nav-plotter" type="button" role="tab" aria-controls="nav-plotter" aria-selected="true" onclick="plot()">plotter</button>
-        <button class="nav-link" id="nav-transactions-tab" data-bs-toggle="tab" data-bs-target="#nav-transactions" type="button" role="tab" aria-controls="nav-transactions" aria-selected="false" onclick="transactions()">transactions</button>
+        <button class="nav-link " id="nav-plotter-tab" data-bs-toggle="tab" data-bs-target="#nav-plotter" type="button" role="tab" aria-controls="nav-plotter" aria-selected="false" onclick="plot()">plot</button>
+        <button class="nav-link active" id="nav-transactions-tab" data-bs-toggle="tab" data-bs-target="#nav-transactions" type="button" role="tab" aria-controls="nav-transactions" aria-selected="true" onclick="transactions()">transactions</button>
       </div>
     </nav>
 
     <!-- Nav tab content -->
     <div class="tab-content" id="nav-tabContent">
-        <form id="plot" class="" action="plot_trend" method="post" name="plot_form">
-            <div class="tab-pane fade show active" id="nav-plotter" role="tabpanel" aria-labelledby="nav-plotter-tab">
-                <br>
-                stock code: <input type="text" name="stock_code" value="" placeholder="00001">
-                start date: <input type="text" name="start_date" value="" placeholder="yyyymmdd">
-                end date: <input type="text" name="end_date" value="" placeholder="yyyymmdd">
-                <button type="submit" class="btn btn-primary">Go</button>
-            </div>
-        </form>
-
-        <form id="transactions" class="" action="data" method="post" name="transactions_form">
-            <div class="tab-pane fade" id="nav-transactions" role="tabpanel" aria-labelledby="nav-transactions-tab">
+        <form id="transactions" class="" action="find_transactions" method="post" name="transactions_form">
+            <div class="tab-pane fade show active" id="nav-transactions" role="tabpanel" aria-labelledby="nav-transactions-tab">
                 <br>
                 stock code: <input type="text" name="stock_code" value="" placeholder="00001">
                 start date: <input type="text" name="start_date" value="" placeholder="yyyymmdd">
                 end date: <input type="text" name="end_date" value="" placeholder="yyyymmdd">
                 threshold: <input type="text" name="threshold" value="" placeholder="pct value (1)">
+                <button type="submit" class="btn btn-primary">Go</button>
+            </div>
+        </form>
+
+        <form id="plot" class="" action="plot_trend" method="post" name="plot_form">
+            <div class="tab-pane fade" id="nav-plotter" role="tabpanel" aria-labelledby="nav-plotter-tab">
+                <br>
+                stock code: <input type="text" name="stock_code" value="" placeholder="00001">
+                start date: <input type="text" name="start_date" value="" placeholder="yyyymmdd">
+                end date: <input type="text" name="end_date" value="" placeholder="yyyymmdd">
                 <button type="submit" class="btn btn-primary">Go</button>
             </div>
         </form>
@@ -71,12 +73,11 @@
         let container = document.getElementById('table');
 
         let hot = new Handsontable(container, {
-          data: out.table.data,
+          data: out.data,
           rowHeaders: true,
-          colHeaders: out.table.columns,
+          colHeaders: out.columns,
           filters: true,
           overflow: "auto",
-          colWidths: [100,100,400,400,200,100],
           stretchH: "all",
           dropdownMenu: true,
           licenseKey: 'non-commercial-and-evaluation'
