@@ -44,7 +44,7 @@ def __get_driver() -> webdriver.Chrome:
     :return: chrome driver
     """
     option = webdriver.ChromeOptions()
-    # option.add_argument('headless')
+    option.add_argument('headless')
 
     driver = webdriver.Chrome(executable_path=DRIVER_PATH, options=option)
     return driver
@@ -88,6 +88,7 @@ def __get_stock_codes() -> dict:
     driver.quit()
     logger.info("__get_stock_codes : end")
     return stock_dict
+
 
 def __validate_date(dt: str) -> str:
     """
@@ -275,6 +276,12 @@ def find_transactions(stock_code: str, start_date: str, end_date: str, threshold
     :return:
     """
     logger.info("find_transactions : start")
+
+    if start_date == end_date:
+        logger.debug("start_date is same as end_date, getting previous day")
+        st = datetime.datetime.strptime(start_date, "%Y%m%d")
+        start_date = (st - datetime.timedelta(1)).strftime("%Y%m%d")
+
     threshold = float(threshold)
     df = pandas.DataFrame(___get_investor_details_for_date_range(stock_code=stock_code, start_date=start_date, end_date=end_date, count=20))
 
@@ -327,6 +334,7 @@ def find_transactions(stock_code: str, start_date: str, end_date: str, threshold
 
     out_df["b_sh_change_pct"] = out_df["b_sh_change_pct"].astype("float").round(2)
     out_df["s_sh_change_pct"] = out_df["s_sh_change_pct"].astype("float").round(2)
+    logger.debug("out_df.shape: {}".format(out_df.shape))
 
     out = out_df.to_dict(orient="split")
     logger.info("find_transactions : end")
@@ -341,7 +349,7 @@ def do():
     # get_investor_details("00001", "20220103", "20220103")
     # __validate_date("20210413")
 
-    find_transactions("00001", "20220103", "20220105", 0.009)
+    find_transactions("00001", "20220104", "20220104", 0.009)
     pass
 
 # do()

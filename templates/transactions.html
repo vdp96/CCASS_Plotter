@@ -43,16 +43,6 @@
     <!-- Nav tab content -->
     <div class="tab-content" id="nav-tabContent">
 
-        <form id="plot" class="" action="plot_trend" method="post" name="plot_form">
-            <div class="tab-pane fade" id="nav-plotter" role="tabpanel" aria-labelledby="nav-plotter-tab">
-                <br>
-                stock code: <input type="text" name="stock_code" value="" placeholder="00001">
-                start date: <input type="text" name="start_date" value="" placeholder="yyyymmdd">
-                end date: <input type="text" name="end_date" value="" placeholder="yyyymmdd">
-                <button type="submit" class="btn btn-primary">Go</button>
-            </div>
-        </form>
-
         <form id="transactions" class="" action="find_transactions" method="post" name="transactions_form">
             <div class="tab-pane fade show active" id="nav-transactions" role="tabpanel" aria-labelledby="nav-transactions-tab">
                 <br>
@@ -63,16 +53,24 @@
                 <button type="submit" class="btn btn-primary">Go</button>
             </div>
         </form>
+
+        <form id="plot" class="" action="plot_trend" method="post" name="plot_form">
+            <div class="tab-pane fade" id="nav-plotter" role="tabpanel" aria-labelledby="nav-plotter-tab">
+                <br>
+                stock code: <input type="text" name="stock_code" value="" placeholder="00001">
+                start date: <input type="text" name="start_date" value="" placeholder="yyyymmdd">
+                end date: <input type="text" name="end_date" value="" placeholder="yyyymmdd">
+                <button type="submit" class="btn btn-primary">Go</button>
+            </div>
+        </form>
     </div>
 
     <!-- transaction table -->
-    <div style="width: 1300px;">
-        <div id="table"></div>
-    </div>
-
+    <div id="trans_table"></div>
     <script>
         var out = {{ data | tojson }};
-        let container = document.getElementById('table');
+        console.log(out);
+        let container = document.getElementById('trans_table');
 
         let hot = new Handsontable(container, {
           data: out.data,
