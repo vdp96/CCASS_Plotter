@@ -27,6 +27,7 @@ DRIVER_PATH = "/Users/vdp/Downloads/chromedriver"
 SH_LINK = "https://www.hkexnews.hk/sdw/search/searchsdw.aspx"
 INDEX_CODES_LINK = "https://www.hkexnews.hk/sdw/search/stocklist.aspx?sortby=stockcode&shareholdingdate=20220508"
 TODAY = datetime.datetime.today()
+LIMIT = 3
 
 # Col Headings
 COL_MAP = dict()
@@ -89,6 +90,11 @@ def __get_stock_codes() -> dict:
     return stock_dict
 
 def __validate_date(dt: str) -> str:
+    """
+
+    :param dt:
+    :return:
+    """
     logger.info("__validate_date : start")
     try:
         cutoff_dt = datetime.datetime(TODAY.year - 1, TODAY.month, TODAY.day, TODAY.hour, TODAY.minute, TODAY.second, TODAY.microsecond,
@@ -105,81 +111,88 @@ def __validate_date(dt: str) -> str:
     logger.info("__validate_date : end")
     return dt
 
-def get_investor_details_for_date(stock_code: str, dt: str = None, count: int = 10) -> dict:
+def ___get_investor_details_for_date(stock_code: str, dt: str = None, count: int = 10) -> dict:
     """
     It is a helper function that gets data for a specific stock code and given date
     :param stock_code:
     :param dt: date in yyyymmdd format (9, May, 2022 = 20220509)
     :return:
     """
-    logger.info("get_investor_details : start")
+    logger.info("___get_investor_details_for_date : start")
 
     driver = __get_driver()
     driver.get(url=SH_LINK)
 
-    # set the date
-    if dt is not None:
-        dt = __validate_date(dt)
-        yr = dt[:4]
-        mt = str(int(dt[4:6]))
-        dy = str(int(dt[6:]))
-        driver.find_element_by_id(id_="txtShareholdingDate").click()
+    try:
+        # set the date
+        if dt is not None:
+            dt = __validate_date(dt)
+            yr = dt[:4]
+            mt = str(int(dt[4:6]))
+            dy = str(int(dt[6:]))
+            driver.find_element_by_id(id_="txtShareholdingDate").click()
 
-        # select year
-        if yr == "2022":
-            driver.find_element_by_xpath(xpath="//*[@id='date-picker']/div[1]/b[1]/ul/li[1]/button").click()
-        elif yr == "2021":
-            driver.find_element_by_xpath(xpath="//*[@id='date-picker']/div[1]/b[1]/ul/li[2]/button").click()
-        else:
-            raise "Year invalid, valid years : {}".format(["2022", "2021"])
+            # select year
+            if yr == "2022":
+                driver.find_element_by_xpath(xpath="//*[@id='date-picker']/div[1]/b[1]/ul/li[1]/button").click()
+            elif yr == "2021":
+                driver.find_element_by_xpath(xpath="//*[@id='date-picker']/div[1]/b[1]/ul/li[2]/button").click()
+            else:
+                raise "Year invalid, valid years : {}".format(["2022", "2021"])
 
-        # select month
-        driver.find_element_by_xpath(xpath="//*[@id='date-picker']/div[1]/b[2]/ul/li["+ mt + "]/button").click()
+            # select month
+            driver.find_element_by_xpath(xpath="//*[@id='date-picker']/div[1]/b[2]/ul/li["+ mt + "]/button").click()
 
-        # select date
-        dt = driver.find_element_by_xpath(xpath="//*[@id='date-picker']/div[1]/b[3]/ul/li[" + dy + "]/button")
-        action = ActionChains(driver)
-        action.double_click(dt).perform()
+            # select date
+            dt = driver.find_element_by_xpath(xpath="//*[@id='date-picker']/div[1]/b[3]/ul/li[" + dy + "]/button")
+            action = ActionChains(driver)
+            action.double_click(dt).perform()
 
-    # enter the stock code and hit enter
-    st_code = driver.find_element_by_id(id_="txtStockCode")
-    st_code.send_keys(stock_code)
-    st_code.send_keys(Keys.ENTER)
+        # enter the stock code and hit enter
+        st_code = driver.find_element_by_id(id_="txtStockCode")
+        st_code.send_keys(stock_code)
+        st_code.send_keys(Keys.ENTER)
 
-    # extract column names
-    col_headings = driver.find_elements_by_xpath(xpath="//*[@id='pnlResultNormal']/div[2]/div/div[2]/table/thead/tr[1]/th")
-    col_headings = [i.text for i in col_headings]
-    len_cols = len(col_headings)
-    # logger.debug("column headings : {}".format(col_headings))
+        # extract column names
+        col_headings = driver.find_elements_by_xpath(xpath="//*[@id='pnlResultNormal']/div[2]/div/div[2]/table/thead/tr[1]/th")
+        col_headings = [i.text for i in col_headings]
+        len_cols = len(col_headings)
+        # logger.debug("column headings : {}".format(col_headings))
 
-    # extract top n participants
-    row_xpath = "//*[@id='pnlResultNormal']/div[2]/div/div[2]/table/tbody"
-    rows = list()
+        # extract top n participants
+        row_xpath = "//*[@id='pnlResultNormal']/div[2]/div/div[2]/table/tbody"
+        rows = list()
 
-    for i in range(count):
-        row = list()
+        for i in range(count):
+            row = list()
 
-        for j in range(len_cols):
-            dt = driver.find_element_by_xpath(xpath=row_xpath+"/tr["+str(i+1)+"]/td["+str(j+1)+"]").text
-            row.append(dt)
-        # logger.debug("appending row : {}".format(row))
-        rows.append(row)
+            for j in range(len_cols):
+                dt = driver.find_element_by_xpath(xpath=row_xpath+"/tr["+str(i+1)+"]/td["+str(j+1)+"]").text
+                row.append(dt)
+            # logger.debug("appending row : {}".format(row))
+            rows.append(row)
 
-    logger.debug("len(rows) : {}".format(len(rows)))
-    driver.quit()
+        logger.debug("len(rows) : {}".format(len(rows)))
+        driver.quit()
+    except:
+        raise "Selenium failed to extract data"
 
     # creating output dict
     out = dict()
     out["columns"] = col_headings
     out["rows"] = rows
-    logger.info("get_investor_details : end")
 
-    # creating df
-    # df = pandas.DataFrame(columns=col_headings, data=rows)
+    logger.info("___get_investor_details_for_date : end")
     return out
 
 
 def __get_dates(start_date: str, end_date: str) -> list:
+    """
+
+    :param start_date:
+    :param end_date:
+    :return:
+    """
     logger.info("__get_dates : start")
 
     start_date = datetime.datetime.strptime(start_date, "%Y%m%d")
@@ -192,14 +205,22 @@ def __get_dates(start_date: str, end_date: str) -> list:
     return dates
 
 
-def get_investor_details_for_date_range(stock_code: str, start_date: str, end_date: str, count: int = 10) -> pandas.DataFrame:
-    logger.info("get_investor_details_for_date_range : start")
+def ___get_investor_details_for_date_range(stock_code: str, start_date: str, end_date: str, count: int = 10) -> pandas.DataFrame:
+    """
+
+    :param stock_code:
+    :param start_date:
+    :param end_date:
+    :param count:
+    :return:
+    """
+    logger.info("___get_investor_details_for_date_range : start")
 
     dates = __get_dates(start_date=start_date, end_date=end_date)
 
     df = pandas.DataFrame()
     for date in dates:
-        inv_data = get_investor_details_for_date(stock_code=stock_code, dt=date, count=count)
+        inv_data = ___get_investor_details_for_date(stock_code=stock_code, dt=date, count=count)
         inv_df = pandas.DataFrame(columns=inv_data["columns"], data=inv_data["rows"])
         inv_df["date"] = date
         df = pandas.concat([df, inv_df], axis=0)
@@ -209,13 +230,21 @@ def get_investor_details_for_date_range(stock_code: str, start_date: str, end_da
     df = df[cols_order]
     logger.debug("df.shape : {}".format(df.shape))
 
-    logger.info("get_investor_details_for_date_range : end")
+    logger.info("___get_investor_details_for_date_range : end")
     return df
 
 def get_investor_details(stock_code: str, start_date: str, end_date: str, count: int = 10) -> dict:
+    """
+
+    :param stock_code:
+    :param start_date:
+    :param end_date:
+    :param count:
+    :return:
+    """
     logger.info("get_investor_details : start")
 
-    df = get_investor_details_for_date_range(stock_code=stock_code, start_date=start_date, end_date=end_date, count=count)
+    df = ___get_investor_details_for_date_range(stock_code=stock_code, start_date=start_date, end_date=end_date, count=count)
     table_data = df.to_dict(orient="split")
 
     # plot data
@@ -237,9 +266,17 @@ def get_investor_details(stock_code: str, start_date: str, end_date: str, count:
 
 
 def find_transactions(stock_code: str, start_date: str, end_date: str, threshold: float) -> dict:
+    """
+
+    :param stock_code:
+    :param start_date:
+    :param end_date:
+    :param threshold:
+    :return:
+    """
     logger.info("find_transactions : start")
     threshold = float(threshold)
-    df = pandas.DataFrame(get_investor_details_for_date_range(stock_code=stock_code, start_date=start_date, end_date=end_date, count=20))
+    df = pandas.DataFrame(___get_investor_details_for_date_range(stock_code=stock_code, start_date=start_date, end_date=end_date, count=20))
 
     # perform the math
     sorted_df = df.groupby(by=["id"]).apply(lambda x: x.sort_values(["date"])).reset_index(drop=True)

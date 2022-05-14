@@ -42,16 +42,6 @@
 
     <!-- Nav tab content -->
     <div class="tab-content" id="nav-tabContent">
-        <form id="transactions" class="" action="find_transactions" method="post" name="transactions_form">
-            <div class="tab-pane fade show active" id="nav-transactions" role="tabpanel" aria-labelledby="nav-transactions-tab">
-                <br>
-                stock code: <input type="text" name="stock_code" value="" placeholder="00001">
-                start date: <input type="text" name="start_date" value="" placeholder="yyyymmdd">
-                end date: <input type="text" name="end_date" value="" placeholder="yyyymmdd">
-                threshold: <input type="text" name="threshold" value="" placeholder="pct value (1)">
-                <button type="submit" class="btn btn-primary">Go</button>
-            </div>
-        </form>
 
         <form id="plot" class="" action="plot_trend" method="post" name="plot_form">
             <div class="tab-pane fade" id="nav-plotter" role="tabpanel" aria-labelledby="nav-plotter-tab">
@@ -62,12 +52,24 @@
                 <button type="submit" class="btn btn-primary">Go</button>
             </div>
         </form>
+
+        <form id="transactions" class="" action="find_transactions" method="post" name="transactions_form">
+            <div class="tab-pane fade show active" id="nav-transactions" role="tabpanel" aria-labelledby="nav-transactions-tab">
+                <br>
+                stock code: <input type="text" name="stock_code" value="" placeholder="00001">
+                start date: <input type="text" name="start_date" value="" placeholder="yyyymmdd">
+                end date: <input type="text" name="end_date" value="" placeholder="yyyymmdd">
+                threshold: <input type="text" name="threshold" value="" placeholder="pct value (1)">
+                <button type="submit" class="btn btn-primary">Go</button>
+            </div>
+        </form>
     </div>
 
     <!-- transaction table -->
     <div style="width: 1300px;">
         <div id="table"></div>
     </div>
+
     <script>
         var out = {{ data | tojson }};
         let container = document.getElementById('table');
