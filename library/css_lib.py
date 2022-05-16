@@ -1,3 +1,5 @@
+import sys
+
 import pandas
 import logging
 import time
@@ -23,7 +25,8 @@ logger.setLevel(level=10)
 # =============================================================
 # GLOBAL VARIABLES
 # =============================================================
-DRIVER_PATH = "/Users/vdp/Downloads/chromedriver"
+# DRIVER_PATH = "/Users/vdp/Downloads/chromedriver"
+DRIVER_PATH = "/usr/bin/chromedriver"
 SH_LINK = "https://www.hkexnews.hk/sdw/search/searchsdw.aspx"
 INDEX_CODES_LINK = "https://www.hkexnews.hk/sdw/search/stocklist.aspx?sortby=stockcode&shareholdingdate=20220508"
 TODAY = datetime.datetime.today()
@@ -83,7 +86,7 @@ def __get_stock_codes() -> dict:
         stock_dict[st_code] = st_name
     logger.debug("row iteration : end")
     ed = time.time()
-    logger.debug("iteration run time: {}".format(ed-st))
+    logger.debug("iteration run time: {}".format(ed - st))
 
     driver.quit()
     logger.info("__get_stock_codes : end")
@@ -98,19 +101,24 @@ def __validate_date(dt: str) -> str:
     """
     logger.info("__validate_date : start")
     try:
-        cutoff_dt = datetime.datetime(TODAY.year - 1, TODAY.month, TODAY.day, TODAY.hour, TODAY.minute, TODAY.second, TODAY.microsecond,
-                                   TODAY.tzinfo).strftime("%Y%m%d")
+        cutoff_dt = datetime.datetime(TODAY.year - 1, TODAY.month, TODAY.day, TODAY.hour, TODAY.minute, TODAY.second,
+                                      TODAY.microsecond,
+                                      TODAY.tzinfo).strftime("%Y%m%d")
     except ValueError:
-        cutoff_dt = datetime.datetime(TODAY.year - 1, TODAY.month, TODAY.day - 1, TODAY.hour, TODAY.minute, TODAY.second, TODAY.microsecond,
-                                   TODAY.tzinfo).strftime("%Y%m%d")
+        cutoff_dt = datetime.datetime(TODAY.year - 1, TODAY.month, TODAY.day - 1, TODAY.hour, TODAY.minute,
+                                      TODAY.second, TODAY.microsecond,
+                                      TODAY.tzinfo).strftime("%Y%m%d")
 
     if int(dt) < int(cutoff_dt):
-        raise "Date cannot be less than one year"
+        raise ValueError("Date cannot be less than one year from today, i.e. ({})".format(cutoff_dt))
+        sys.exit(1)
     if int(dt) >= int(TODAY.strftime("%Y%m%d")):
-        raise "Date cannot be greater than today"
+        raise ValueError("Date cannot be greater than today")
+        sys.exit(1)
 
     logger.info("__validate_date : end")
     return dt
+
 
 def ___get_investor_details_for_date(stock_code: str, dt: str = None, count: int = 10) -> dict:
     """
@@ -124,59 +132,58 @@ def ___get_investor_details_for_date(stock_code: str, dt: str = None, count: int
     driver = __get_driver()
     driver.get(url=SH_LINK)
 
-    try:
-        # set the date
-        if dt is not None:
-            dt = __validate_date(dt)
-            yr = dt[:4]
-            mt = str(int(dt[4:6]))
-            dy = str(int(dt[6:]))
-            driver.find_element_by_id(id_="txtShareholdingDate").click()
+    # set the date
+    if dt is not None:
+        dt = __validate_date(dt)
+        yr = dt[:4]
+        mt = str(int(dt[4:6]))
+        dy = str(int(dt[6:]))
+        driver.find_element_by_id(id_="txtShareholdingDate").click()
 
-            # select year
-            if yr == "2022":
-                driver.find_element_by_xpath(xpath="//*[@id='date-picker']/div[1]/b[1]/ul/li[1]/button").click()
-            elif yr == "2021":
-                driver.find_element_by_xpath(xpath="//*[@id='date-picker']/div[1]/b[1]/ul/li[2]/button").click()
-            else:
-                raise "Year invalid, valid years : {}".format(["2022", "2021"])
+        # select year
+        if yr == "2022":
+            driver.find_element_by_xpath(xpath="//*[@id='date-picker']/div[1]/b[1]/ul/li[1]/button").click()
+        elif yr == "2021":
+            driver.find_element_by_xpath(xpath="//*[@id='date-picker']/div[1]/b[1]/ul/li[2]/button").click()
+        else:
+            raise ValueError("Date cannot be greater than today or less than a year ago")
 
-            # select month
-            driver.find_element_by_xpath(xpath="//*[@id='date-picker']/div[1]/b[2]/ul/li["+ mt + "]/button").click()
+        # select month
+        driver.find_element_by_xpath(xpath="//*[@id='date-picker']/div[1]/b[2]/ul/li[" + mt + "]/button").click()
 
-            # select date
-            dt = driver.find_element_by_xpath(xpath="//*[@id='date-picker']/div[1]/b[3]/ul/li[" + dy + "]/button")
-            action = ActionChains(driver)
-            action.double_click(dt).perform()
+        # select date
+        dt = driver.find_element_by_xpath(xpath="//*[@id='date-picker']/div[1]/b[3]/ul/li[" + dy + "]/button")
+        action = ActionChains(driver)
+        action.double_click(dt).perform()
 
-        # enter the stock code and hit enter
-        st_code = driver.find_element_by_id(id_="txtStockCode")
-        st_code.send_keys(stock_code)
-        st_code.send_keys(Keys.ENTER)
+    # enter the stock code and hit enter
+    st_code = driver.find_element_by_id(id_="txtStockCode")
+    st_code.send_keys(stock_code)
+    st_code.send_keys(Keys.ENTER)
 
-        # extract column names
-        col_headings = driver.find_elements_by_xpath(xpath="//*[@id='pnlResultNormal']/div[2]/div/div[2]/table/thead/tr[1]/th")
-        col_headings = [i.text for i in col_headings]
-        len_cols = len(col_headings)
-        # logger.debug("column headings : {}".format(col_headings))
+    # extract column names
+    col_headings = driver.find_elements_by_xpath(
+        xpath="//*[@id='pnlResultNormal']/div[2]/div/div[2]/table/thead/tr[1]/th")
+    col_headings = [i.text for i in col_headings]
+    len_cols = len(col_headings)
+    # logger.debug("column headings : {}".format(col_headings))
 
-        # extract top n participants
-        row_xpath = "//*[@id='pnlResultNormal']/div[2]/div/div[2]/table/tbody"
-        rows = list()
+    # extract top n participants
+    row_xpath = "//*[@id='pnlResultNormal']/div[2]/div/div[2]/table/tbody"
+    rows = list()
 
-        for i in range(count):
-            row = list()
+    for i in range(count):
+        row = list()
 
-            for j in range(len_cols):
-                dt = driver.find_element_by_xpath(xpath=row_xpath+"/tr["+str(i+1)+"]/td["+str(j+1)+"]").text
-                row.append(dt)
-            # logger.debug("appending row : {}".format(row))
-            rows.append(row)
+        for j in range(len_cols):
+            dt = driver.find_element_by_xpath(
+                xpath=row_xpath + "/tr[" + str(i + 1) + "]/td[" + str(j + 1) + "]").text
+            row.append(dt)
+        # logger.debug("appending row : {}".format(row))
+        rows.append(row)
 
         logger.debug("len(rows) : {}".format(len(rows)))
         driver.quit()
-    except:
-        raise "Selenium failed to extract data"
 
     # creating output dict
     out = dict()
@@ -196,9 +203,12 @@ def __get_dates(start_date: str, end_date: str) -> list:
     """
     logger.info("__get_dates : start")
 
+    if start_date > end_date:
+        raise ValueError("start_date {} > end_date {}, please check and try again!".format(start_date, end_date))
+
     start_date = datetime.datetime.strptime(start_date, "%Y%m%d")
     end_date = datetime.datetime.strptime(end_date, "%Y%m%d")
-    dates = [start_date+datetime.timedelta(days=x) for x in range((end_date-start_date).days+1)]
+    dates = [start_date + datetime.timedelta(days=x) for x in range((end_date - start_date).days + 1)]
     dates = [x.strftime("%Y%m%d") for x in dates]
     logger.debug("number of days : {}".format(len(dates)))
 
@@ -206,7 +216,8 @@ def __get_dates(start_date: str, end_date: str) -> list:
     return dates
 
 
-def ___get_investor_details_for_date_range(stock_code: str, start_date: str, end_date: str, count: int = 10) -> pandas.DataFrame:
+def ___get_investor_details_for_date_range(stock_code: str, start_date: str, end_date: str,
+                                           count: int = 10) -> pandas.DataFrame:
     """
 
     :param stock_code:
@@ -234,6 +245,7 @@ def ___get_investor_details_for_date_range(stock_code: str, start_date: str, end
     logger.info("___get_investor_details_for_date_range : end")
     return df
 
+
 def get_investor_details(stock_code: str, start_date: str, end_date: str, count: int = 10) -> dict:
     """
 
@@ -245,7 +257,8 @@ def get_investor_details(stock_code: str, start_date: str, end_date: str, count:
     """
     logger.info("get_investor_details : start")
 
-    df = ___get_investor_details_for_date_range(stock_code=stock_code, start_date=start_date, end_date=end_date, count=count)
+    df = ___get_investor_details_for_date_range(stock_code=stock_code, start_date=start_date, end_date=end_date,
+                                                count=count)
     table_data = df.to_dict(orient="split")
 
     # plot data
@@ -283,7 +296,9 @@ def find_transactions(stock_code: str, start_date: str, end_date: str, threshold
         start_date = (st - datetime.timedelta(1)).strftime("%Y%m%d")
 
     threshold = float(threshold)
-    df = pandas.DataFrame(___get_investor_details_for_date_range(stock_code=stock_code, start_date=start_date, end_date=end_date, count=20))
+    df = pandas.DataFrame(
+        ___get_investor_details_for_date_range(stock_code=stock_code, start_date=start_date, end_date=end_date,
+                                               count=20))
 
     # perform the math
     sorted_df = df.groupby(by=["id"]).apply(lambda x: x.sort_values(["date"])).reset_index(drop=True)
@@ -315,13 +330,19 @@ def find_transactions(stock_code: str, start_date: str, end_date: str, threshold
                 sd = abs(sell["sh_change_pct"])
                 mx = max(bd, sd)
                 mn = min(bd, sd)
-                if mn/mx >= 0.3:
+                if mn / mx >= 0.3:
                     trans_list.append([dt, b_pid, s_pid])
 
-    out_df = pandas.DataFrame(columns=["date", "b_id", "b_name", "b_shares", "b_shares_pct",  "b_sh_change_pct", "s_id", "s_name", "s_shares", "s_shares_pct", "s_sh_change_pct"])
-    buys_df.rename(columns={"date": "date", "id": "b_id", "name": "b_name", "shares": "b_shares", "shares_pct": "b_shares_pct", "sh_change_pct": "b_sh_change_pct"}, inplace=True)
-    sells_df.rename(columns={"date": "date", "id": "s_id", "name": "s_name", "shares": "s_shares", "shares_pct": "s_shares_pct", "sh_change_pct": "s_sh_change_pct"}, inplace=True)
-    
+    out_df = pandas.DataFrame(
+        columns=["date", "b_id", "b_name", "b_shares", "b_shares_pct", "b_sh_change_pct", "s_id", "s_name", "s_shares",
+                 "s_shares_pct", "s_sh_change_pct"])
+    buys_df.rename(
+        columns={"date": "date", "id": "b_id", "name": "b_name", "shares": "b_shares", "shares_pct": "b_shares_pct",
+                 "sh_change_pct": "b_sh_change_pct"}, inplace=True)
+    sells_df.rename(
+        columns={"date": "date", "id": "s_id", "name": "s_name", "shares": "s_shares", "shares_pct": "s_shares_pct",
+                 "sh_change_pct": "s_sh_change_pct"}, inplace=True)
+
     for exch in trans_list:
         dt = exch[0]
         bid = exch[1]
@@ -349,7 +370,7 @@ def do():
     # get_investor_details("00001", "20220103", "20220103")
     # __validate_date("20210413")
 
-    find_transactions("00001", "20220104", "20220104", 0.009)
+    find_transactions("5000", "20220104", "20220104", 0.009)
     pass
 
 # do()

@@ -82,35 +82,40 @@ cht_container{
         <canvas id="bar-chart" width="1000" height="400"></canvas>
             <script>
                 var out = {{ data | tojson }};
-                pt_data = out.plot
-                var cht = document.getElementById('bar-chart');
+                if (out.code > 0) {
+                    msg = out.error
+                    alert(msg)
+                } else {
+                    pt_data = out.data.plot
+                    var cht = document.getElementById('bar-chart');
 
-                bar_cht = new Chart(cht, {
-                    type: 'bar',
-                    data: {
-                        labels: pt_data.names,
-                        datasets: [{
-                            label: "holding %",
-                            backgroundColor: ["#3e95cd", "#8e5ea2","#3cba9f","#e8c3b9","#c45850", "#f38b4a", "#56d798", "#ff8397", "#6970d5", "#ff22ff"],
-                            data: pt_data.shares_pct
-                        }],
-                    },
-                    options: {
-                      responsive: false,
-                      legend: { display: false },
-                      plugins:{
-                        title: {
-                            display: true,
-                            text: 'Stock Code : ' + pt_data.stock_code + ' | ' + ' As of : ' + pt_data.date,
-                            padding: {
-                                top: 10,
-                                bottom: 10
-                            },
-                            align: 'center'
+                    bar_cht = new Chart(cht, {
+                        type: 'bar',
+                        data: {
+                            labels: pt_data.names,
+                            datasets: [{
+                                label: "holding %",
+                                backgroundColor: ["#3e95cd", "#8e5ea2","#3cba9f","#e8c3b9","#c45850", "#f38b4a", "#56d798", "#ff8397", "#6970d5", "#ff22ff"],
+                                data: pt_data.shares_pct
+                            }],
+                        },
+                        options: {
+                          responsive: false,
+                          legend: { display: false },
+                          plugins:{
+                            title: {
+                                display: true,
+                                text: 'Stock Code : ' + pt_data.stock_code + ' | ' + ' As of : ' + pt_data.date,
+                                padding: {
+                                    top: 10,
+                                    bottom: 10
+                                },
+                                align: 'center'
+                            }
+                          }
                         }
-                      }
-                    }
-                })
+                    })
+                }
             </script>
        </div>
     </div>
@@ -120,21 +125,28 @@ cht_container{
     <div style="width: 1300px;">
         <div id="table"></div>
     </div>
+
     <script>
         var out = {{ data | tojson }};
-        let container = document.getElementById('table');
 
-        let hot = new Handsontable(container, {
-          data: out.table.data,
-          rowHeaders: true,
-          colHeaders: out.table.columns,
-          filters: true,
-          overflow: "auto",
-          colWidths: [100,100,400,400,200,100],
-          stretchH: "all",
-          dropdownMenu: true,
-          licenseKey: 'non-commercial-and-evaluation'
-        });
+        if (out.code > 0) {
+            msg = out.error
+        } else {
+            let container = document.getElementById('table');
+
+            let hot = new Handsontable(container, {
+              data: out.data.table.data,
+              rowHeaders: true,
+              colHeaders: out.data.table.columns,
+              filters: true,
+              overflow: "auto",
+              colWidths: [100,100,400,400,200,100],
+              stretchH: "all",
+              dropdownMenu: true,
+              licenseKey: 'non-commercial-and-evaluation'
+            });
+        };
+
     </script>
 </body>
 </html>

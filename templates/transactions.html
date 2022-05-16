@@ -69,19 +69,24 @@
     <div id="trans_table"></div>
     <script>
         var out = {{ data | tojson }};
-        console.log(out);
-        let container = document.getElementById('trans_table');
 
-        let hot = new Handsontable(container, {
-          data: out.data,
-          rowHeaders: true,
-          colHeaders: out.columns,
-          filters: true,
-          overflow: "auto",
-          stretchH: "all",
-          dropdownMenu: true,
-          licenseKey: 'non-commercial-and-evaluation'
-        });
+        if (out.code > 0) {
+            msg = out.error;
+            alert(msg);
+        } else {
+            let container = document.getElementById('trans_table');
+
+            let hot = new Handsontable(container, {
+              data: out.data.data,
+              rowHeaders: true,
+              colHeaders: out.data.columns,
+              filters: true,
+              overflow: "auto",
+              stretchH: "all",
+              dropdownMenu: true,
+              licenseKey: 'non-commercial-and-evaluation'
+            });
+        }
     </script>
 </body>
 </html>
