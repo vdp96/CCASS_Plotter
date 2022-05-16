@@ -10,19 +10,21 @@
 </head>
 
 <body style="font-family: Arial">
+
     <!-- functions to toggle forms -->
     <script>
-            function plot() {
-                document.getElementById("plot").style.display = "block";
-                document.getElementById("transactions").style.display = "none";
-                hot.destroy();
-            };
-            function transactions() {
-                document.getElementById("plot").style.display = "none";
-                document.getElementById("transactions").style.display = "block";
-                bar_cht.destroy();
-                hot.destroy();
-            };
+
+        function plot() {
+            document.getElementById("plot").style.display = "block";
+            document.getElementById("transactions").style.display = "none";
+            hot.destroy();
+        };
+        function transactions() {
+            document.getElementById("plot").style.display = "none";
+            document.getElementById("transactions").style.display = "block";
+            bar_cht.destroy();
+            hot.destroy();
+        };
     </script>
 
      <!-- Nav Bar -->
@@ -69,14 +71,15 @@
     <div id="trans_table"></div>
     <script>
         var out = {{ data | tojson }};
+        console.log(out)
 
         if (out.code > 0) {
             msg = out.error;
             alert(msg);
         } else {
-            let container = document.getElementById('trans_table');
+            var container = document.getElementById('trans_table');
 
-            let hot = new Handsontable(container, {
+            var hot = new Handsontable(container, {
               data: out.data.data,
               rowHeaders: true,
               colHeaders: out.data.columns,

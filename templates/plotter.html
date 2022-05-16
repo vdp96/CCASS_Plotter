@@ -23,18 +23,20 @@ cht_container{
 </style>
 
 <body style="font-family: Arial">
+
      <!-- functions to toggle forms -->
-     <script>
-              function plot() {
-                document.getElementById("plot").style.display = "block";
-                document.getElementById("transactions").style.display = "none";
-            };
-            function transactions() {
-                document.getElementById("plot").style.display = "none";
-                document.getElementById("transactions").style.display = "block";
-                bar_cht.destroy();
-                hot.destroy();
-            };
+    <script>
+
+        function plot() {
+            document.getElementById("plot").style.display = "block";
+            document.getElementById("transactions").style.display = "none";
+        };
+        function transactions() {
+            document.getElementById("plot").style.display = "none";
+            document.getElementById("transactions").style.display = "block";
+            bar_cht.destroy();
+            hot.destroy();
+        };
     </script>
 
     <!-- Nav Bar -->
@@ -132,9 +134,9 @@ cht_container{
         if (out.code > 0) {
             msg = out.error
         } else {
-            let container = document.getElementById('table');
+            var container = document.getElementById('table');
 
-            let hot = new Handsontable(container, {
+            var hot = new Handsontable(container, {
               data: out.data.table.data,
               rowHeaders: true,
               colHeaders: out.data.table.columns,

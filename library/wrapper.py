@@ -43,7 +43,7 @@ def find_transactions(stock_code, start_date, end_date, threshold):
     out["error"] = list()
 
     try:
-        out = css_lib.find_transactions(stock_code=stock_code, start_date=start_date, end_date=end_date,
+        out["data"] = css_lib.find_transactions(stock_code=stock_code, start_date=start_date, end_date=end_date,
                                         threshold=threshold)
     except Exception as err:
         exc_type, exc_value, exc_traceback = sys.exc_info()

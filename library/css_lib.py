@@ -8,8 +8,9 @@ from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
 
 # =============================================================
 # CONFIGURE LOGGER
@@ -111,10 +112,10 @@ def __validate_date(dt: str) -> str:
 
     if int(dt) < int(cutoff_dt):
         raise ValueError("Date cannot be less than one year from today, i.e. ({})".format(cutoff_dt))
-        sys.exit(1)
+
     if int(dt) >= int(TODAY.strftime("%Y%m%d")):
         raise ValueError("Date cannot be greater than today")
-        sys.exit(1)
+
 
     logger.info("__validate_date : end")
     return dt
@@ -176,14 +177,12 @@ def ___get_investor_details_for_date(stock_code: str, dt: str = None, count: int
         row = list()
 
         for j in range(len_cols):
-            dt = driver.find_element_by_xpath(
-                xpath=row_xpath + "/tr[" + str(i + 1) + "]/td[" + str(j + 1) + "]").text
+            dt = driver.find_element_by_xpath(xpath=row_xpath + "/tr[" + str(i + 1) + "]/td[" + str(j + 1) + "]").text
             row.append(dt)
-        # logger.debug("appending row : {}".format(row))
         rows.append(row)
 
-        logger.debug("len(rows) : {}".format(len(rows)))
-        driver.quit()
+    logger.debug("len(rows) : {}".format(len(rows)))
+    driver.quit()
 
     # creating output dict
     out = dict()
@@ -367,10 +366,10 @@ def do():
     # print(GET_STOCK_CODES)
 
     # get_investor_details_for_date(stock_code="00001", dt="20210513")
-    # get_investor_details("00001", "20220103", "20220103")
+    print(get_investor_details("00001", "20220103", "20220103"))
     # __validate_date("20210413")
 
-    find_transactions("5000", "20220104", "20220104", 0.009)
+    # find_transactions("00001", "20220104", "20220104", 0.009)
     pass
 
 # do()
