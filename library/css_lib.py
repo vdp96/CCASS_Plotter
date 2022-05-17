@@ -128,7 +128,7 @@ def __get_dates(start_date: str, end_date: str) -> list:
     """
     logger.info("__get_dates : start")
 
-    if start_date > end_date:
+    if int(start_date) > int(end_date):
         raise ValueError("start_date {} > end_date {}, please check and try again!".format(start_date, end_date))
 
     start_date = datetime.datetime.strptime(start_date, "%Y%m%d")
@@ -259,6 +259,7 @@ def get_investor_details(stock_code: str, start_date: str, end_date: str, count:
     """
     logger.info("="*80)
     logger.info("get_investor_details : start")
+    logger.debug("Params: {}, {}, {}".format(stock_code, start_date, end_date))
     logger.info("="*80)
 
     df = ___get_investor_details_for_date_range(stock_code=stock_code, start_date=start_date, end_date=end_date,
@@ -295,6 +296,7 @@ def find_transactions(stock_code: str, start_date: str, end_date: str, threshold
     """
     logger.info("="*80)
     logger.info("find_transactions : start")
+    logger.debug("Params: {}, {}, {}, {}".format(stock_code, start_date, end_date, threshold))
     logger.info("="*80)
 
     if start_date == end_date:
@@ -307,6 +309,7 @@ def find_transactions(stock_code: str, start_date: str, end_date: str, threshold
     df = pandas.DataFrame(
         ___get_investor_details_for_date_range(stock_code=stock_code, start_date=start_date, end_date=end_date,
                                                count=20))
+    df["date"] = df["date"].astype(int)
 
     # Prepare the data frame for finding transactions
     sorted_df = df.groupby(by=["id"]).apply(lambda x: x.sort_values(["date"])).reset_index(drop=True)
@@ -375,10 +378,10 @@ def do():
     # print(GET_STOCK_CODES)
 
     # get_investor_details_for_date(stock_code="00001", dt="20210513")
-    print(get_investor_details("00001", "20220103", "20220103"))
+    # print(get_investor_details("00001", "20220103", "20220103"))
     # __validate_date("20210413")
 
-    # find_transactions("00001", "20220104", "20220104", 0.009)
+    find_transactions("00001", "20220101", "20220105", 0.009)
     pass
 
 # do()

@@ -57,6 +57,9 @@ def find_transactions(stock_code, start_date, end_date, threshold):
     if not isinstance(end_date, str):
         end_date = str(end_date)
 
+    if not isinstance(threshold, float):
+        threshold = float(threshold)
+
     out = dict()
     out["data"] = None
     out["code"] = 0
@@ -81,10 +84,10 @@ def do():
     # print(GET_STOCK_CODES)
 
     # get_investor_details_for_date(stock_code="00001", dt="20210513")
-    get_investor_details("05000", "20220103", "20220103")
+    # get_investor_details("05000", "20220103", "20220103")
     # __validate_date("20210413")
 
-    # find_transactions("05000", "20220104", "20220104", 0.009)
+    find_transactions("00700", "20220103", "20220105", 0.009)
     pass
 
 # do()
