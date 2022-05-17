@@ -1,4 +1,3 @@
-import sys
 
 import pandas
 import logging
@@ -10,7 +9,6 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
 
 # =============================================================
 # CONFIGURE LOGGER
@@ -44,7 +42,7 @@ COL_MAP["% of the total number of Issued Shares/ Warrants/ Units"] = "shares_pct
 
 def __get_driver() -> webdriver.Chrome:
     """
-    Intent of the function is to create a chrome driver for other functions to access.
+    Helper function to create a chrome driver for selenium to parse the website.
     :return: chrome driver
     """
     option = webdriver.ChromeOptions()
@@ -96,7 +94,8 @@ def __get_stock_codes() -> dict:
 
 def __validate_date(dt: str) -> str:
     """
-
+    Helper function that validates whether input date is within the limits of dates acceptable by HKEX website
+    i.e. minimum date is one year ago from today and maximum date is today
     :param dt:
     :return:
     """
@@ -116,14 +115,35 @@ def __validate_date(dt: str) -> str:
     if int(dt) >= int(TODAY.strftime("%Y%m%d")):
         raise ValueError("Date cannot be greater than today")
 
-
     logger.info("__validate_date : end")
     return dt
 
 
-def ___get_investor_details_for_date(stock_code: str, dt: str = None, count: int = 10) -> dict:
+def __get_dates(start_date: str, end_date: str) -> list:
     """
-    It is a helper function that gets data for a specific stock code and given date
+    Helper function to get all the calender dates between start and end dates.
+    :param start_date:
+    :param end_date:
+    :return:
+    """
+    logger.info("__get_dates : start")
+
+    if start_date > end_date:
+        raise ValueError("start_date {} > end_date {}, please check and try again!".format(start_date, end_date))
+
+    start_date = datetime.datetime.strptime(start_date, "%Y%m%d")
+    end_date = datetime.datetime.strptime(end_date, "%Y%m%d")
+    dates = [start_date + datetime.timedelta(days=x) for x in range((end_date - start_date).days + 1)]
+    dates = [x.strftime("%Y%m%d") for x in dates]
+    logger.debug("number of days : {}".format(len(dates)))
+
+    logger.info("__get_dates : end")
+    return dates
+
+
+def ___get_investor_details_for_date(stock_code: str, date: str, count: int = 10) -> dict:
+    """
+    Helper function that gets participants data for a specific stock code and given date
     :param stock_code:
     :param dt: date in yyyymmdd format (9, May, 2022 = 20220509)
     :return:
@@ -134,28 +154,31 @@ def ___get_investor_details_for_date(stock_code: str, dt: str = None, count: int
     driver.get(url=SH_LINK)
 
     # set the date
-    if dt is not None:
-        dt = __validate_date(dt)
-        yr = dt[:4]
-        mt = str(int(dt[4:6]))
-        dy = str(int(dt[6:]))
-        driver.find_element_by_id(id_="txtShareholdingDate").click()
+    logger.debug("*"*60)
+    logger.debug("Parsing website for date : {}, stock_code : {}".format(date, stock_code))
+    logger.debug("*"*60)
 
-        # select year
-        if yr == "2022":
-            driver.find_element_by_xpath(xpath="//*[@id='date-picker']/div[1]/b[1]/ul/li[1]/button").click()
-        elif yr == "2021":
-            driver.find_element_by_xpath(xpath="//*[@id='date-picker']/div[1]/b[1]/ul/li[2]/button").click()
-        else:
-            raise ValueError("Date cannot be greater than today or less than a year ago")
+    date = __validate_date(date)
+    yr = date[:4]
+    mt = str(int(date[4:6]))
+    dy = str(int(date[6:]))
+    driver.find_element_by_id(id_="txtShareholdingDate").click()
 
-        # select month
-        driver.find_element_by_xpath(xpath="//*[@id='date-picker']/div[1]/b[2]/ul/li[" + mt + "]/button").click()
+    # select year
+    if yr == "2022":
+        driver.find_element_by_xpath(xpath="//*[@id='date-picker']/div[1]/b[1]/ul/li[1]/button").click()
+    elif yr == "2021":
+        driver.find_element_by_xpath(xpath="//*[@id='date-picker']/div[1]/b[1]/ul/li[2]/button").click()
+    else:
+        raise ValueError("Date cannot be greater than today or less than a year ago")
 
-        # select date
-        dt = driver.find_element_by_xpath(xpath="//*[@id='date-picker']/div[1]/b[3]/ul/li[" + dy + "]/button")
-        action = ActionChains(driver)
-        action.double_click(dt).perform()
+    # select month
+    driver.find_element_by_xpath(xpath="//*[@id='date-picker']/div[1]/b[2]/ul/li[" + mt + "]/button").click()
+
+    # select date
+    dt = driver.find_element_by_xpath(xpath="//*[@id='date-picker']/div[1]/b[3]/ul/li[" + dy + "]/button")
+    action = ActionChains(driver)
+    action.double_click(dt).perform()
 
     # enter the stock code and hit enter
     st_code = driver.find_element_by_id(id_="txtStockCode")
@@ -183,6 +206,7 @@ def ___get_investor_details_for_date(stock_code: str, dt: str = None, count: int
 
     logger.debug("len(rows) : {}".format(len(rows)))
     driver.quit()
+    logger.debug("Parsing for date : {} done!".format(date))
 
     # creating output dict
     out = dict()
@@ -193,32 +217,11 @@ def ___get_investor_details_for_date(stock_code: str, dt: str = None, count: int
     return out
 
 
-def __get_dates(start_date: str, end_date: str) -> list:
-    """
-
-    :param start_date:
-    :param end_date:
-    :return:
-    """
-    logger.info("__get_dates : start")
-
-    if start_date > end_date:
-        raise ValueError("start_date {} > end_date {}, please check and try again!".format(start_date, end_date))
-
-    start_date = datetime.datetime.strptime(start_date, "%Y%m%d")
-    end_date = datetime.datetime.strptime(end_date, "%Y%m%d")
-    dates = [start_date + datetime.timedelta(days=x) for x in range((end_date - start_date).days + 1)]
-    dates = [x.strftime("%Y%m%d") for x in dates]
-    logger.debug("number of days : {}".format(len(dates)))
-
-    logger.info("__get_dates : end")
-    return dates
-
-
 def ___get_investor_details_for_date_range(stock_code: str, start_date: str, end_date: str,
                                            count: int = 10) -> pandas.DataFrame:
     """
-
+    Helper function to retrieve participant details for a date range. This inturn calls helper function that gets data
+    for a single day and aggregates it.
     :param stock_code:
     :param start_date:
     :param end_date:
@@ -231,7 +234,7 @@ def ___get_investor_details_for_date_range(stock_code: str, start_date: str, end
 
     df = pandas.DataFrame()
     for date in dates:
-        inv_data = ___get_investor_details_for_date(stock_code=stock_code, dt=date, count=count)
+        inv_data = ___get_investor_details_for_date(stock_code=stock_code, date=date, count=count)
         inv_df = pandas.DataFrame(columns=inv_data["columns"], data=inv_data["rows"])
         inv_df["date"] = date
         df = pandas.concat([df, inv_df], axis=0)
@@ -247,14 +250,16 @@ def ___get_investor_details_for_date_range(stock_code: str, start_date: str, end
 
 def get_investor_details(stock_code: str, start_date: str, end_date: str, count: int = 10) -> dict:
     """
-
+    Get top 10 participants' details for a given stock
     :param stock_code:
     :param start_date:
     :param end_date:
     :param count:
     :return:
     """
+    logger.info("="*80)
     logger.info("get_investor_details : start")
+    logger.info("="*80)
 
     df = ___get_investor_details_for_date_range(stock_code=stock_code, start_date=start_date, end_date=end_date,
                                                 count=count)
@@ -280,26 +285,30 @@ def get_investor_details(stock_code: str, start_date: str, end_date: str, count:
 
 def find_transactions(stock_code: str, start_date: str, end_date: str, threshold: float) -> dict:
     """
-
+    Identify the possible transactions based on change of shares held each day by a participant
+    Criteria: shares exchanged between parties should be at least 30% of (max shares) between the parties
     :param stock_code:
     :param start_date:
     :param end_date:
     :param threshold:
     :return:
     """
+    logger.info("="*80)
     logger.info("find_transactions : start")
+    logger.info("="*80)
 
     if start_date == end_date:
-        logger.debug("start_date is same as end_date, getting previous day")
+        logger.debug(
+            "start_date {} is same as end_date {}, resetting start_date to previous day".format(start_date, end_date))
         st = datetime.datetime.strptime(start_date, "%Y%m%d")
         start_date = (st - datetime.timedelta(1)).strftime("%Y%m%d")
+        logger.debug("start_date reset from {} to {}".format(end_date, start_date))
 
-    threshold = float(threshold)
     df = pandas.DataFrame(
         ___get_investor_details_for_date_range(stock_code=stock_code, start_date=start_date, end_date=end_date,
                                                count=20))
 
-    # perform the math
+    # Prepare the data frame for finding transactions
     sorted_df = df.groupby(by=["id"]).apply(lambda x: x.sort_values(["date"])).reset_index(drop=True)
     sorted_df["float_holdings"] = sorted_df["shares_pct"].apply(lambda x: float(x[:-1]))
     sorted_df["sh_change_pct"] = sorted_df.groupby(["id"])["float_holdings"].diff()
@@ -309,7 +318,6 @@ def find_transactions(stock_code: str, start_date: str, end_date: str, threshold
     filt_df = filt_df[filt_df["mark_threshold"] == 1]
     filt_df = filt_df.sort_values(["date", "sh_change_pct"])
 
-    # example
     temp_df = filt_df[["date", "id", "name", "shares", "shares_pct", "sh_change_pct"]]
     buys_df = temp_df[temp_df["sh_change_pct"] > 0]
     sells_df = temp_df[temp_df["sh_change_pct"] < 0]
@@ -317,7 +325,7 @@ def find_transactions(stock_code: str, start_date: str, end_date: str, threshold
     sells = sells_df.to_dict("records")
 
     # get list of transactions based on criteria
-    # Criteria: shares exchanged between parties should be at least 30% of max shares transacted between parties
+    # trans_list = [[date, buy_id, sell_id]]
     trans_list = list()
     for buy in buys:
         b_pid = buy["id"]
@@ -332,6 +340,7 @@ def find_transactions(stock_code: str, start_date: str, end_date: str, threshold
                 if mn / mx >= 0.3:
                     trans_list.append([dt, b_pid, s_pid])
 
+    # rename columns
     out_df = pandas.DataFrame(
         columns=["date", "b_id", "b_name", "b_shares", "b_shares_pct", "b_sh_change_pct", "s_id", "s_name", "s_shares",
                  "s_shares_pct", "s_sh_change_pct"])
@@ -354,7 +363,7 @@ def find_transactions(stock_code: str, start_date: str, end_date: str, threshold
 
     out_df["b_sh_change_pct"] = out_df["b_sh_change_pct"].astype("float").round(2)
     out_df["s_sh_change_pct"] = out_df["s_sh_change_pct"].astype("float").round(2)
-    logger.debug("out_df.shape: {}".format(out_df.shape))
+    logger.debug("out_df.shape (i.e. number of transactions): {}".format(out_df.shape))
 
     out = out_df.to_dict(orient="split")
     logger.info("find_transactions : end")

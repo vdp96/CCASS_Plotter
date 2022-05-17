@@ -17,6 +17,16 @@ logger.setLevel(level=10)
 
 def get_investor_details(stock_code, start_date, end_date):
     logger.info("get_investor_details : start")
+
+    if not isinstance(stock_code, str):
+        stock_code = str(stock_code)
+
+    if not isinstance(start_date, str):
+        start_date = str(start_date)
+
+    if not isinstance(end_date, str):
+        end_date = str(end_date)
+
     out = dict()
     out["data"] = None
     out["code"] = 0
@@ -37,6 +47,16 @@ def get_investor_details(stock_code, start_date, end_date):
 
 def find_transactions(stock_code, start_date, end_date, threshold):
     logger.info("find_transactions : start")
+
+    if not isinstance(stock_code, str):
+        stock_code = str(stock_code)
+
+    if not isinstance(start_date, str):
+        start_date = str(start_date)
+
+    if not isinstance(end_date, str):
+        end_date = str(end_date)
+
     out = dict()
     out["data"] = None
     out["code"] = 0
@@ -44,7 +64,7 @@ def find_transactions(stock_code, start_date, end_date, threshold):
 
     try:
         out["data"] = css_lib.find_transactions(stock_code=stock_code, start_date=start_date, end_date=end_date,
-                                        threshold=threshold)
+                                                threshold=threshold)
     except Exception as err:
         exc_type, exc_value, exc_traceback = sys.exc_info()
         tb = traceback.TracebackException(exc_type, exc_value, exc_traceback)
@@ -54,6 +74,7 @@ def find_transactions(stock_code, start_date, end_date, threshold):
 
     logger.info("find_transactions : end")
     return out
+
 
 def do():
     # GET_STOCK_CODES = __get_stock_codes()
